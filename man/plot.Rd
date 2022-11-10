@@ -26,5 +26,7 @@ Generic plot function for trainDI and aoa
 \author{
 Marvin Ludwig, Hanna Meyer
 
+Marvin Ludwig, Hanna Meyer
+
 Carles Milà
 }

@@ -18,6 +18,7 @@ ffs(
   tuneGrid = NULL,
   seed = sample(1:1000, 1),
   verbose = TRUE,
+  ffsParallel = FALSE,
   ...
 )
 }
@@ -49,6 +50,8 @@ See Details.}
 \item{seed}{A random number used for model training}
 
 \item{verbose}{Logical. Should information about the progress be printed?}
+
+\item{ffsParallel}{Logical. Should chunk-based parallism be used.}
 
 \item{...}{arguments passed to the classification or regression routine
 (such as randomForest).}
@@ -90,6 +93,8 @@ This variable selection is particularly suitable for spatial
 cross validations where variable selection
 MUST be based on the performance of the model for predicting new spatial units.
 See Meyer et al. (2018) and Meyer et al. (2019) for further details.
+
+Chuck-based parallelism uses the future package to plan a users parallel options.
 }
 \examples{
 \dontrun{
