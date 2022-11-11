@@ -51,7 +51,7 @@ See Details.}
 
 \item{verbose}{Logical. Should information about the progress be printed?}
 
-\item{ffsParallel}{Logical. Should chunk-based parallism be used.}
+\item{ffsParallel}{Logical. Should chunk-based parallelism be used.}
 
 \item{...}{arguments passed to the classification or regression routine
 (such as randomForest).}

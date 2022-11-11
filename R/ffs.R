@@ -15,7 +15,7 @@
 #' @param tuneGrid see \code{\link{train}}
 #' @param seed A random number used for model training
 #' @param verbose Logical. Should information about the progress be printed?
-#' @param ffsParallel Logical. Should chunk-based parallism be used.
+#' @param ffsParallel Logical. Should chunk-based parallelism be used.
 #' @param ... arguments passed to the classification or regression routine
 #' (such as randomForest).
 #' @return A list of class train. Beside of the usual train content
@@ -191,6 +191,7 @@ ffs <- function (predictors,
 
   # bind the list of performance stats and vars per model
   initial_models <- plyr::rbind.fill(initial_models)
+  initial_models$var_number <- minVar
 
   best_model <- model_results(initial_models, maximize)
 
@@ -202,16 +203,17 @@ ffs <- function (predictors,
                  " with ",metric," ",round(best_model$actmodelperf,3)))
   }
 
-  for (k in 1:(length(names(predictors))-minVar)){
+  overall_models <- data.frame()
 
-    startvars <- unlist(strsplit(best_model$vars, ','))
+  for (i in 1:(length(names(predictors))-minVar)){
 
-    nextvars <- names(predictors)[-which(
-      names(predictors)%in%startvars)]
+    startvars <- unlist(strsplit(best_model$vars, ', '))
 
-    minGrid <- t(data.frame(combn(c(startvars, nextvars),length(startvars)+1)))[1:length(nextvars),]
+    nextvars <- names(predictors)[-which(names(predictors) %in% startvars)]
 
-    if (length(startvars)<(k+(minVar-1))){
+    minGrid <- t(data.frame(combn(c(startvars, nextvars), length(startvars)+1)))[1:length(nextvars),]
+
+    if (length(startvars)<(i+(minVar-1))){
       message(paste0("Note: No increase in performance found using more than ",
                      length(startvars), " variables"))
 
@@ -234,7 +236,7 @@ ffs <- function (predictors,
                                                                        tuneLength = tuneLength,
                                                                        tuneGrid = tuneGrid,
                                                                        seed = seed,
-                                                                       verbose = verbose))
+                                                                       verbose = verbose), ...)
     } else {
 
       model <-
@@ -251,28 +253,38 @@ ffs <- function (predictors,
                                                                 tuneGrid = tuneGrid,
                                                                 seed = seed,
                                                                 verbose = verbose
-        ))
+        ),...)
 
     }
 
     # bind the list of performance stats and vars per model
     model <- plyr::rbind.fill(model)
-    model$var_number <- length(startvars+1)
+    model$var_number <- length(startvars)+1
 
-    if(k == 1){
-      overall_models <- rbind(initial_models, model)
 
-    } else {
-
-      overall_models <- rbind(overall_models, model)
-    }
 
     new_model <- model_results(model, maximize)
+
+    #this just helps compare old model with new models based on var amount
 
     if(isBetter(new_model$actmodelperf,best_model$actmodelperf,
                 best_model$actmodelperfSE, #SE from model with nvar-1
                 maximization=maximize,withinSE=withinSE)){
       best_model <- new_model
+    }
+
+    if(i == 1){
+
+      overall_models <- plyr::rbind.fill(initial_models, model)
+
+    } else {
+
+      overall_models <- plyr::rbind.fill(overall_models, model)
+    }
+
+    if(verbose){
+      print(paste0(paste0("vars selected: ",paste(best_model$vars, collapse = ',')),
+                   " with ",metric," ",round(best_model$actmodelperf,3)))
     }
 
   }
@@ -285,20 +297,21 @@ ffs <- function (predictors,
 
 #' Chunk-based Initial Model Function
 #'
-#' @param minGrid
-#' @param predictors
-#' @param response
-#' @param method
-#' @param metric
-#' @param maximize
-#' @param globalval
-#' @param minVar
-#' @param trControl
-#' @param tuneLength
-#' @param tuneGrid
-#' @param seed
-#' @param verbose
-#' @param ...
+#' @param minGrid A matrix with possible variable combinations.
+#' @param predictors see \code{\link{train}}
+#' @param response see \code{\link{train}}
+#' @param method see \code{\link{train}}
+#' @param metric see \code{\link{train}}
+#' @param maximize see \code{\link{train}}
+#' @param globalval Logical. Should models be evaluated based on 'global' performance? See \code{\link{global_validation}}
+#' @param minVar Numeric. Number of variables to combine for the first selection.
+#' See Details.
+#' @param trControl see \code{\link{train}}
+#' @param tuneLength see \code{\link{train}}
+#' @param tuneGrid see \code{\link{train}}
+#' @param seed A random number used for model training
+#' @param verbose Logical. Should information about the progress be printed?
+#' @param ... arguments passed to the classification or regression routine
 #' @noRd
 #'
 #' @return A data.frame with performance statistics and variable pairs
@@ -335,16 +348,16 @@ chunk_model <- function(minGrid,
   }
 
   #train model:
-  model <- caret::train(predictors[,minGrid],
+  model <- suppressWarnings(caret::train(predictors[,minGrid],
                         response,
                         method=method,
                         metric=metric,
                         trControl=trControl,
                         tuneLength = tuneLength,
                         tuneGrid = tuneGrid,
-                        ...)
+                        ...))
 
-  ### compare the model with the currently best model
+  ### get model results based on global or not
   if (globalval){
     perf_stats <- global_validation(model)[names(global_validation(model))==metric]
   }else{
@@ -389,15 +402,15 @@ if(!maximize) ev <- function(x){min(x,na.rm=TRUE)}
 
 se <- function(x){sd(x, na.rm = TRUE)/sqrt(length(na.exclude(x)))}
 
-#' Comparing Model Helper
+#' Model Comparison Helper
 #'
-#' @param actmodelperf
-#' @param bestmodelperf
-#' @param bestmodelperfSE
-#' @param maximization
-#' @param withinSE
+#' @param actmodelperf Numeric vector.
+#' @param bestmodelperf Numeric vector.
+#' @param bestmodelperfSE Numeric vector.
+#' @param maximization Logical.
+#' @param withinSE Logical.
 #'
-#' @return A model.
+#' @return Best model data.frame of statistics.
 #' @noRd
 isBetter <- function (actmodelperf,bestmodelperf,
                       bestmodelperfSE=NULL,
