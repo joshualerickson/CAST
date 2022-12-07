@@ -211,7 +211,15 @@ ffs <- function (predictors,
 
     nextvars <- names(predictors)[-which(names(predictors) %in% startvars)]
 
+    #### Need to account for last variable
+    if(length(nextvars) > 1){
     minGrid <- t(data.frame(combn(c(startvars, nextvars), length(startvars)+1)))[1:length(nextvars),]
+
+    } else {
+
+    minGrid <- t(data.frame(combn(c(startvars, nextvars), length(startvars)+1)))[1:length(nextvars),]
+    minGrid <- matrix(minGrid, nrow = 1)
+    }
 
     if (length(startvars)<(i+(minVar-1))){
       message(paste0("Note: No increase in performance found using more than ",
