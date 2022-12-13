@@ -168,7 +168,9 @@ ffs <- function (predictors,
                                                                             tuneLength = tuneLength,
                                                                             tuneGrid = tuneGrid,
                                                                             seed = seed,
-                                                                            verbose = verbose))
+                                                                            verbose = verbose),
+                                                                            future.seed = TRUE,
+                                                                            ...)
   } else {
 
     initial_models <-
@@ -185,7 +187,7 @@ ffs <- function (predictors,
                                                                      tuneGrid = tuneGrid,
                                                                      seed = seed,
                                                                      verbose = verbose
-      ))
+      ), ...)
 
   }
 
@@ -244,7 +246,9 @@ ffs <- function (predictors,
                                                                        tuneLength = tuneLength,
                                                                        tuneGrid = tuneGrid,
                                                                        seed = seed,
-                                                                       verbose = verbose), ...)
+                                                                       verbose = verbose),
+                                                                       future.seed = TRUE,
+                                                                       ...)
     } else {
 
       model <-
