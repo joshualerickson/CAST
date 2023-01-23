@@ -19,6 +19,7 @@ ffs(
   seed = sample(1:1000, 1),
   verbose = TRUE,
   ffsParallel = FALSE,
+  include.vars = NULL,
   ...
 )
 }
@@ -52,6 +53,8 @@ See Details.}
 \item{verbose}{Logical. Should information about the progress be printed?}
 
 \item{ffsParallel}{Logical. Should chunk-based parallelism be used.}
+
+\item{include.vars}{Character. Should contain column names of variables to select first, e.g. c('prcp','slope').}
 
 \item{...}{arguments passed to the classification or regression routine
 (such as randomForest).}

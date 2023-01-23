@@ -16,6 +16,7 @@
 #' @param seed A random number used for model training
 #' @param verbose Logical. Should information about the progress be printed?
 #' @param ffsParallel Logical. Should chunk-based parallelism be used.
+#' @param include.vars Character. Should contain column names of variables to select first, e.g. c('prcp','slope').
 #' @param ... arguments passed to the classification or regression routine
 #' (such as randomForest).
 #' @return A list of class train. Beside of the usual train content
@@ -125,6 +126,7 @@ ffs <- function (predictors,
                  seed = sample(1:1000, 1),
                  verbose=TRUE,
                  ffsParallel = FALSE,
+                 include.vars = NULL,
                  ...){
 
   trControl$returnResamp <- "final"
@@ -148,6 +150,9 @@ ffs <- function (predictors,
       print("warning: withinSE is set to FALSE as no SE can be calculated using global validation")
       withinSE <- FALSE
     }}
+
+  #### See whether if vars are initially chosen
+  if(is.null(include.vars)){
 
   #### chose initial best model from all combinations of two variables
   minGrid <- t(data.frame(combn(names(predictors),minVar)))
@@ -203,6 +208,14 @@ ffs <- function (predictors,
   if(verbose){
     print(paste0(paste0("vars selected: ",paste(best_model$vars, collapse = ',')),
                  " with ",metric," ",round(best_model$actmodelperf,3)))
+  }
+
+  }
+
+  if(!is.null(include.vars)) {
+
+    best_model <- data.frame(vars = toString(include.vars))
+
   }
 
   overall_models <- data.frame()
@@ -277,6 +290,12 @@ ffs <- function (predictors,
 
     new_model <- model_results(model, maximize)
 
+    if(!is.null(include.vars) && i == 1){
+
+        best_model <- new_model
+
+    } else {
+
     #this just helps compare old model with new models based on var amount
 
     if(isBetter(new_model$actmodelperf,best_model$actmodelperf,
@@ -285,9 +304,19 @@ ffs <- function (predictors,
       best_model <- new_model
     }
 
+    }
+
     if(i == 1){
 
+      if(!is.null(include.vars)){
+
+      overall_models <- model
+
+      } else {
+
       overall_models <- plyr::rbind.fill(initial_models, model)
+
+      }
 
     } else {
 
